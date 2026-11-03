@@ -1,0 +1,25 @@
+# Blue/Green-ready Dockerfile for tagged builds
+FROM maven:3.9.9-eclipse-temurin-17 AS builder
+
+WORKDIR /workspace
+
+COPY pom.xml ./
+COPY src ./src
+
+RUN mvn -B -DskipTests clean package
+
+FROM eclipse-temurin:17-jre
+
+ARG APP_COLOR=blue
+ARG APP_TAG=v1
+
+ENV APP_COLOR=${APP_COLOR}
+ENV APP_TAG=${APP_TAG}
+
+WORKDIR /app
+
+COPY --from=builder /workspace/target/*.jar /app/app.jar
+
+EXPOSE 8080
+
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]
