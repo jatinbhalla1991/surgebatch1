@@ -210,3 +210,60 @@ Students must submit:
 **Expected Outcome:**
 
 At the end of this assignment, you should be able to design, build, deploy, manage, troubleshoot, and optimize a multi-tier application using advanced Docker concepts.
+
+########### 4nov ##########
+kubernetes
+
+# Assignment: Deploy an Application on AKS Using Terraform, ACR, and Blue-Green Deployment
+
+**Objective:** Provision an Azure Kubernetes Service (AKS) cluster using Terraform, deploy a containerized application from Azure Container Registry (ACR), and implement a Blue-Green Deployment strategy to release a new application version.
+
+### Task 1: Provision the AKS Cluster Using Terraform
+- Write Terraform configuration files to provision an AKS cluster in Azure.
+- Configure the cluster with a minimum of **2 worker nodes**.
+- Initialize Terraform and execute the `plan` and `apply` commands.
+- Verify that the AKS cluster is successfully created and accessible.
+
+### Task 2: Build and Push the Application Image to ACR
+- Create a custom Docker image for your application.
+- You can either build a new application image or reuse the image created in the previous Docker assignment.
+- Create an Azure Container Registry (ACR), if one does not already exist.
+- Tag your Docker image appropriately and push it to ACR.
+- Verify that the image is available in your ACR repository.
+
+### Task 3: Deploy the Application on AKS
+- Connect to your AKS cluster using `kubectl`.
+- Create Kubernetes manifest files to deploy your application using the image stored in ACR.
+- Configure the required Kubernetes resources, such as:
+  - Deployment
+  - Service
+- Apply the manifest files and verify that the application is deployed successfully.
+- Check the Pod status, Service configuration, and application accessibility.
+
+### Task 4: Implement Blue-Green Deployment for Application V2
+- Make changes to your application code and create a new version (**V2**).
+- Build a new Docker image with an updated version tag.
+- Push the V2 image to ACR.
+- Implement a **Blue-Green Deployment strategy** on AKS:
+  - **Blue:** Existing application version (V1).
+  - **Green:** New application version (V2).
+- Deploy V2 alongside V1 without interrupting the existing application.
+- Verify that V2 is working correctly.
+- Switch the Kubernetes Service traffic from V1 (Blue) to V2 (Green).
+- Validate that users are accessing V2 successfully.
+- Ensure you understand how to roll back to V1 if any issues occur.
+
+### Expected Outcome
+By completing this assignment, you should be able to:
+1. Provision an AKS cluster using Terraform.
+2. Build, tag, and push Docker images to Azure Container Registry.
+3. Deploy containerized applications on AKS using Kubernetes manifest files.
+4. Implement Blue-Green Deployment to release application updates with minimal downtime.
+5. Switch traffic between application versions and perform a rollback when required.
+
+**Submission Requirements:**
+- Terraform configuration files.
+- Dockerfile and application source code.
+- Kubernetes manifest files.
+- Screenshots of the AKS cluster, ACR repository, and running Pods.
+- Evidence of successful Blue-Green deployment, traffic switching, and rollback.
