@@ -267,3 +267,219 @@ By completing this assignment, you should be able to:
 - Kubernetes manifest files.
 - Screenshots of the AKS cluster, ACR repository, and running Pods.
 - Evidence of successful Blue-Green deployment, traffic switching, and rollback.
+
+############## 11 november ####################
+
+sonar qube and nexus
+
+# Assignment: Design and Implement an Enterprise DevSecOps Pipeline Using SonarQube and Nexus
+
+## Business Scenario
+
+You are working as a DevOps Engineer in a fintech organization developing a Java-based payment application.
+
+The organization wants to implement a secure CI/CD pipeline where every code change is analyzed for quality and security before it is released.
+
+The organization has the following requirements:
+
+- SonarQube must analyze source code quality and security.
+- Nexus Repository must manage application artifacts and Docker images.
+- Vulnerable dependencies must be identified before publishing artifacts.
+- Only applications passing the defined Quality Gate should be published to Nexus.
+- Different artifact versions must be maintained for development and production.
+- The entire process must be automated using GitHub Actions or Jenkins.
+
+## Task 1: SonarQube Advanced Configuration
+
+1. Deploy SonarQube on an Ubuntu VM or using Docker.
+2. Integrate SonarQube with your GitHub repository.
+3. Configure a project with a unique project key.
+4. Generate and configure SonarQube authentication tokens securely.
+5. Configure a Quality Gate with the following conditions:
+   - New code coverage should be at least 80%.
+   - No new Blocker or Critical issues.
+   - No new security vulnerabilities.
+   - No new security hotspots left unreviewed.
+6. Configure Quality Profiles for Java.
+7. Configure branch analysis for main and feature branches.
+8. Configure Pull Request analysis.
+9. Integrate SonarQube Quality Gate with your CI/CD pipeline.
+10. Demonstrate how the pipeline behaves when the Quality Gate fails.
+
+**Expected outcome:** The pipeline should stop artifact publishing if the Quality Gate fails.
+
+## Task 2: Nexus Repository Advanced Configuration
+
+1. Deploy Nexus Repository Community Edition.
+2. Configure the following repositories:
+
+   - maven-releases (Hosted)
+   - maven-snapshots (Hosted)
+   - maven-central (Proxy)
+   - maven-public (Group)
+   - docker-hosted (Hosted)
+
+3. Create separate users for developers and deployment pipelines.
+4. Configure role-based access control.
+5. Configure Maven settings.xml.
+6. Configure pom.xml with distributionManagement.
+7. Upload JAR artifacts to Nexus.
+8. Configure release and snapshot artifact publishing.
+9. Configure Docker repository authentication and connector.
+10. Push and pull Docker images from Nexus.
+
+**Expected outcome:** Nexus should act as the centralized artifact repository for the organization.
+
+## Task 3: Implement Vulnerability Scanning
+
+Integrate vulnerability scanning into your CI/CD pipeline.
+
+Requirements:
+
+1. Integrate OWASP Dependency-Check with Maven.
+2. Identify vulnerable third-party dependencies.
+3. Generate an HTML vulnerability report.
+4. Configure the pipeline to fail if a dependency has a CVSS score of 7 or higher.
+5. Generate a Software Bill of Materials (SBOM).
+6. Scan the generated Docker image using Trivy.
+7. Publish security reports as GitHub Actions workflow artifacts.
+8. Ensure vulnerable artifacts are not published to Nexus.
+
+**Expected outcome:** No artifact should be published when it violates the defined security policy.
+
+Note: SonarQube code analysis and dependency/container vulnerability scanning are separate security controls. Use the appropriate scanner for each.
+
+## Task 4: Build an End-to-End CI/CD Pipeline
+
+Implement the complete workflow using GitHub Actions or Jenkins.
+
+Pipeline stages:
+
+1. Checkout source code.
+2. Compile the Java application.
+3. Execute unit tests.
+4. Perform SonarQube analysis.
+5. Wait for SonarQube Quality Gate result.
+6. Perform dependency vulnerability scanning.
+7. Generate SBOM.
+8. Build the JAR package.
+9. Publish approved JAR to Nexus.
+10. Build Docker image.
+11. Scan Docker image using Trivy.
+12. Push approved Docker image to Nexus.
+13. Generate and publish pipeline reports.
+
+**Important condition:** The pipeline must not publish artifacts if any mandatory quality or security gate fails.
+
+## Task 5: Implement Artifact Version Management
+
+Create a version management strategy.
+
+Requirements:
+
+1. Publish development builds as snapshot versions.
+2. Publish production builds as release versions.
+3. Maintain unique versions for every production release.
+4. Prevent accidental overwriting of released artifacts.
+5. Maintain traceability between Git commit, JAR version and Docker image tag.
+6. Demonstrate downloading an older artifact from Nexus.
+7. Demonstrate rollback to a previous application version.
+
+Example:
+
+- Development: 1.0.1-SNAPSHOT
+- Release: 1.0.0
+- Release: 1.0.1
+- Release: 1.1.0
+
+## Task 6: Implement Branch-Based Pipeline Strategy
+
+Configure the pipeline for the following branches:
+
+**Feature branch**
+- Build and test.
+- Run SonarQube analysis.
+- Perform dependency scanning.
+- Do not publish production release artifacts.
+
+**Main branch**
+- Execute all quality and security checks.
+- Publish approved release artifacts.
+- Build and publish Docker images.
+
+**Pull Request**
+- Execute code quality checks.
+- Perform security analysis.
+- Prevent merging when mandatory checks fail.
+
+## Task 7: Advanced Troubleshooting Scenarios
+
+Demonstrate how you would troubleshoot the following scenarios:
+
+1. SonarQube analysis succeeds, but the Quality Gate fails.
+2. SonarQube scanner cannot connect to the SonarQube server.
+3. Maven cannot download dependencies through the Nexus proxy repository.
+4. Jenkins/GitHub Actions receives HTTP 401 while uploading artifacts to Nexus.
+5. Nexus returns HTTP 403 during artifact deployment.
+6. Two builds attempt to publish the same release version.
+7. Nexus disk usage reaches 90%.
+8. A vulnerable dependency is identified after an artifact has already been published.
+9. Docker image push to Nexus fails due to authentication or TLS configuration.
+10. SonarQube analysis reports different results between local and CI environments.
+
+For each scenario, provide:
+- Root cause.
+- Diagnostic commands or logs.
+- Resolution steps.
+- Preventive measures.
+
+## Final Deliverables
+
+Submit the following:
+
+1. Architecture diagram.
+2. GitHub repository containing application source code.
+3. SonarQube project and Quality Gate configuration screenshots.
+4. Nexus repository configuration screenshots.
+5. Complete GitHub Actions workflow or Jenkinsfile.
+6. Maven pom.xml and settings.xml.
+7. Dependency vulnerability report.
+8. Docker image vulnerability report.
+9. SBOM file.
+10. Proof of successful artifact publishing.
+11. Screenshots of failed and successful pipeline executions.
+12. Technical documentation explaining the implementation.
+
+## Evaluation Criteria
+
+| Area | Marks |
+|---|---:|
+| SonarQube configuration | 15 |
+| Nexus configuration | 15 |
+| Vulnerability scanning | 15 |
+| CI/CD pipeline automation | 20 |
+| Artifact version management | 10 |
+| Branch-based pipeline strategy | 10 |
+| Troubleshooting | 10 |
+| Documentation and architecture | 5 |
+| **Total** | **100** |
+
+## Final Challenge
+
+Demonstrate the following scenario:
+
+A developer introduces code containing a security vulnerability and updates a vulnerable third-party dependency.
+
+Your pipeline must:
+
+1. Detect the code issue through SonarQube.
+2. Detect the vulnerable dependency through Dependency-Check.
+3. Fail the pipeline.
+4. Prevent artifact publishing to Nexus.
+5. Generate reports identifying the problems.
+
+After fixing the issues, the developer pushes the updated code.
+
+The pipeline should pass all mandatory quality and security checks, publish the JAR to Nexus, build and scan the Docker image, and publish the approved image to Nexus.
+
+**The objective is to demonstrate a complete automated DevSecOps implementation, not just individual tool configurations.**
