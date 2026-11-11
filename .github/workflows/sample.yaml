@@ -63,9 +63,11 @@ jobs:
         working-directory: ${{ env.WORKDIR }}
         run: mvn -B versions:set -DnewVersion=1.0.0-${{ github.run_number }} -DgenerateBackupPoms=false
       
-      - name: Build with Maven
+      - name: Build and analyze with SonarCloud
         working-directory: ${{ env.WORKDIR }}
-        run: mvn -B clean install
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: mvn -B clean verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar
 
       - name: publish the jar package to workflow artifacts
         uses: actions/upload-artifact@v4
