@@ -28,6 +28,36 @@ jobs:
           distribution: temurin
           cache: maven
           cache-dependency-path: ${{ env.WORKDIR }}/pom.xml
+
+      - name: Configure Maven settings.xml for Nexus
+        env:
+          NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
+          NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
+        run: |
+          mkdir -p ~/.m2
+          cat > ~/.m2/settings.xml <<EOF
+          <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0">
+            <servers>
+              <!-- id must match <distributionManagement> repository/snapshotRepository id in pom.xml -->
+              <server>
+                <id>nexus</id>
+                <username>${NEXUS_USERNAME}</username>
+                <password>${NEXUS_PASSWORD}</password>
+              </server>
+            </servers>
+            <mirrors>
+              <!-- Overrides Maven's bundled default mirror (same id) that blocks plain-HTTP
+                   repositories since Maven 3.8.1, so deploys to the HTTP Nexus above work. -->
+              <mirror>
+                <id>maven-default-http-blocker</id>
+                <mirrorOf>external:http:*</mirrorOf>
+                <name>Allow internal HTTP Nexus</name>
+                <url>http://0.0.0.0/blocked-by-mirror</url>
+                <blocked>false</blocked>
+              </mirror>
+            </mirrors>
+          </settings>
+          EOF
      
       - name: Set unique release version
         working-directory: ${{ env.WORKDIR }}
@@ -42,3 +72,9 @@ jobs:
         with:
           name: jar-package
           path: ${{ env.WORKDIR }}/target/*.jar
+      
+      - name: Publish JAR to Nexus
+        working-directory: ${{ env.WORKDIR }}
+        run: mvn -B deploy -DskipTests
+
+    
