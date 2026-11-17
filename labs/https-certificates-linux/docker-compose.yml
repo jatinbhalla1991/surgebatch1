@@ -1,0 +1,16 @@
+services:
+  https-lab:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: https-lab/cert-sandbox:latest
+    container_name: https-lab
+    hostname: lab.local
+    ports:
+      - "8080:80"    # http://localhost:8080  -> redirects to https
+      - "8443:443"   # https://localhost:8443 -> nginx TLS vhost (Part 4.1)
+      - "8444:8444"  # optional second TLS port if you also stand up Apache on :8444
+    networks: [https-lab-net]
+
+networks:
+  https-lab-net:

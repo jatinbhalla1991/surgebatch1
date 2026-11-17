@@ -1,0 +1,38 @@
+services:
+  xl-deploy:
+    image: xebialabs/xl-deploy:24.1
+    container_name: xl-deploy
+    environment:
+      ACCEPT_EULA: "Y"
+      ADMIN_PASSWORD: admin123
+    ports:
+      - "4516:4516"
+    volumes:
+      - xld-data:/opt/xebialabs/xl-deploy-server/repository
+    networks: [xld]
+
+  # Target server that XL Deploy deploys to over SSH. Built from
+  # linuxserver/openssh-server (SSH/SFTP for XL Deploy) plus a JRE layered on
+  # via target-server.Dockerfile, so the deployed jar can also be run here.
+  target-server:
+    build:
+      context: .
+      dockerfile: target-server.Dockerfile
+    image: xld-lab/target-server:latest
+    container_name: target-server
+    hostname: target-server
+    environment:
+      PUID: "1000"
+      PGID: "1000"
+      PASSWORD_ACCESS: "true"
+      USER_NAME: deployer
+      USER_PASSWORD: deployer123
+    ports:
+      - "8081:8080"   # publish so a jar started here (`java -jar ...`) is reachable at http://localhost:8081
+    networks: [xld]
+
+volumes:
+  xld-data:
+
+networks:
+  xld:
