@@ -483,3 +483,86 @@ After fixing the issues, the developer pushes the updated code.
 The pipeline should pass all mandatory quality and security checks, publish the JAR to Nexus, build and scan the Docker image, and publish the approved image to Nexus.
 
 **The objective is to demonstrate a complete automated DevSecOps implementation, not just individual tool configurations.**
+---------------------------
+17th november
+----------------------
+
+xl deploy
+# Assignment: XL Deploy and Azure App Service
+
+**Objective:** Implement application deployment on Azure App Service using XL Deploy and understand how deployment automation works in a real-time project environment.
+
+### Task 1: Deploy an Application on Azure App Service using XL Deploy
+
+1. Create a sample Java web application and build it using Maven.
+2. Generate the WAR file and prepare it for deployment.
+3. Create an Azure App Service.
+4. Configure the required deployment target in XL Deploy.
+5. Import the application package into XL Deploy.
+6. Deploy the application to Azure App Service.
+7. Verify whether the application is accessible through its Azure URL.
+8. Make a small change in the application, generate a new version, and deploy it again.
+
+**Note:** Maintain both application versions and check the deployment history in XL Deploy.
+
+### Task 2: Configure Multiple Environments
+
+Assume you are working on a project where the application needs to be deployed in three different environments: Dev, QA, and Production.
+
+1. Create three separate Azure App Services.
+2. Configure all three environments in XL Deploy.
+3. Deploy the same application package to all three environments.
+4. Configure different application settings for each environment.
+5. Use XL Deploy Dictionaries to manage environment-specific values.
+6. Verify that the application is running correctly in all three environments.
+
+**Condition:** You should not create separate application packages for Dev, QA, and Production. Use the same package and manage the configuration through XL Deploy.
+
+### Task 3: Implement Blue-Green Deployment
+
+1. Create an Azure App Service and deploy the first version of your application.
+2. Create a staging deployment slot.
+3. Make some changes to the application and prepare a second version.
+4. Use XL Deploy to deploy the second version to the staging slot.
+5. Test the application in the staging environment.
+6. Once everything is working fine, perform a slot swap between Staging and Production.
+7. Verify that the new version is accessible through the production URL.
+8. Demonstrate how you can switch back to the previous version if the new release has issues.
+
+### Task 4: Application Rollback
+
+1. Deploy Version 1 of your application using XL Deploy.
+2. Make some changes and deploy Version 2.
+3. Introduce a configuration issue in Version 2 and simulate an application failure.
+4. Identify the previous successful deployment from XL Deploy.
+5. Roll back the application to Version 1.
+6. Verify that the previous version is working correctly.
+7. Capture the deployment history and rollback logs.
+
+**Condition:** Explain how you would handle this situation in a production environment without impacting application users.
+
+### Task 5: Integrate GitHub Actions with XL Deploy
+
+1. Create a private repository on GitHub and upload your Java application.
+2. Create a GitHub Actions workflow to build the application using Maven.
+3. Generate the WAR file as a build artifact.
+4. Configure the workflow to pass the generated artifact to XL Deploy.
+5. Automate deployment to the Dev environment.
+6. Configure a manual approval step before deploying to Production.
+7. Verify the application after deployment on Azure App Service.
+8. Check the deployment logs and maintain the release version.
+
+**Condition:** The application should be deployed automatically whenever changes are pushed to the main branch. Production deployment should happen only after approval.
+
+---
+
+### Submission Instructions
+
+- Submit the GitHub repository link.
+- Share the XL Deploy configuration screenshots.
+- Share the Azure App Service details.
+- Provide screenshots of successful application deployment.
+- Share the deployment and rollback logs.
+- Explain the complete deployment process briefly.
+
+**Important:** All tasks should be performed practically. Do not submit only theoretical explanations or screenshots of the Azure Portal.
