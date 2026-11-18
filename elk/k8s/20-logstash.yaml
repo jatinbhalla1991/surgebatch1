@@ -34,6 +34,13 @@ data:
           hosts => ["http://elasticsearch:9200"]
           index => "k8s-metrics-%{+YYYY.MM.dd}"
         }
+      # Heartbeat's uptime-check documents (60-heartbeat.yaml) go to their
+      # own index too, same "[@metadata][beat]" mechanism.
+      } else if [@metadata][beat] == "heartbeat" {
+        elasticsearch {
+          hosts => ["http://elasticsearch:9200"]
+          index => "k8s-heartbeat-%{+YYYY.MM.dd}"
+        }
       # Node-level system logs (kubelet/containerd via journald) go to their
       # own index, separate from per-pod container logs.
       } else if [log_type] == "node-system" {

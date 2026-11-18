@@ -54,6 +54,21 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
 
+  heartbeat:
+    image: docker.elastic.co/beats/heartbeat:8.15.0
+    container_name: heartbeat
+    command: ["--strict.perms=false"]
+    depends_on:
+      - logstash
+    # Lets heartbeat.yml's "host.docker.internal" monitors reach the sample
+    # app's published host ports from ../docker/docker-compose.yaml, which
+    # runs on a separate Compose network. Docker Desktop resolves this
+    # automatically; the mapping is added explicitly for Linux hosts too.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./heartbeat/heartbeat.yml:/usr/share/heartbeat/heartbeat.yml:ro
+
 volumes:
   es_data:
     driver: local

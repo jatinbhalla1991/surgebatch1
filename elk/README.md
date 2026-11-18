@@ -3,11 +3,12 @@
 **Goal:** understand how a centralized logging pipeline (Filebeat -> Logstash
 -> Elasticsearch -> Kibana) fits together, deploy it as native Kubernetes
 workloads on AKS, and learn to diagnose the Kubernetes scheduling/rollout
-problems you'll hit along the way.
+problems you'll hit along the way. Metricbeat and Heartbeat extend the same
+pipeline with cluster metrics and uptime checks.
 
 **What you'll learn:**
 - How log shipping, parsing/enrichment, indexing, and visualization are split
-  across four separate components, and why each one is a separate workload.
+  across separate components, and why each one is a separate workload.
 - How to deploy stateful (`PersistentVolumeClaim`-backed) and stateless
   workloads on AKS with plain Kubernetes manifests (no Helm).
 - How to query, live-tail, and start building dashboards from logs in Kibana.
@@ -25,7 +26,7 @@ Filebeat (DaemonSet, 1 pod per node)             Metricbeat (DaemonSet + Deploym
    |  tails container logs + node journald           |  polls kubelet stats (node/pod/container/
    |  (kubelet/containerd)                           |  volume) + watches the API for events
    v                                                  v
-                     Logstash (Deployment)
+                     Logstash (Deployment)   <---   Heartbeat (Deployment)
                         |  parses/enriches (e.g. nginx access-log grok -> structured fields)
                         |  routes to an index based on log type / beat
                         v
@@ -36,12 +37,17 @@ Filebeat (DaemonSet, 1 pod per node)             Metricbeat (DaemonSet + Deploym
                               search, filter, live-tail, and visualize in the browser
 ```
 
+Heartbeat doesn't tail or poll anything that already happened like the other
+two Beats - it actively probes HTTP/TCP endpoints on its own schedule and
+ships each check's up/down result straight to Logstash, same as the others.
+
 Each component is a separate Kubernetes workload on purpose: Filebeat and
 Metricbeat's node-level metricsets must run on *every* node (hence
-`DaemonSet`), Metricbeat's cluster-wide event metricset must run exactly once
-(hence a separate single-replica `Deployment`), while Logstash/Elasticsearch/
-Kibana are each a single logical service (hence `Deployment`). Manifests live
-in `k8s/` and deploy everything into a `logging` namespace.
+`DaemonSet`), Metricbeat's cluster-wide event metricset and Heartbeat's
+uptime checks must each run exactly once (hence single-replica
+`Deployment`s), while Logstash/Elasticsearch/Kibana are each a single
+logical service (hence `Deployment`). Manifests live in `k8s/` and deploy
+everything into a `logging` namespace.
 
 ## Step-by-step: deploy on AKS
 
@@ -112,6 +118,7 @@ kubectl apply -f k8s\20-logstash.yaml
 kubectl apply -f k8s\30-kibana.yaml
 kubectl apply -f k8s\40-filebeat.yaml
 kubectl apply -f k8s\50-metricbeat.yaml
+kubectl apply -f k8s\60-heartbeat.yaml
 ```
 
 **Verify:**
@@ -171,7 +178,7 @@ the cluster, in one place.
    - `log_type: "node-system"` (only in `k8s-system-logs-*`)
    - `systemd_unit: "kubelet"` or `systemd_unit: "containerd"`
    - `message: "error"` (free-text search across the raw log line)
-   - `http.response.status_code: 200` (nginx hits only - see Step 8)
+   - `http.response.status_code: 200` (nginx hits only - see Step 9)
 5. Click the **>** arrow on the left of any row to expand it and see every
    field on that document (or the **JSON** tab for the raw document). Hover a
    field in the left-hand field list and click **+** to add it as a column
@@ -181,7 +188,36 @@ the cluster, in one place.
    visualizations (e.g. a count-by-`kubernetes.namespace` bar chart) sourced
    from the same data views.
 
-### Step 8 - Test the pipeline / monitor live logs
+### Step 8 - Check uptime with Heartbeat
+
+**Purpose:** Filebeat/Metricbeat tell you about things that already
+happened; Heartbeat tells you whether an endpoint is reachable *right now*,
+independent of whether it happened to log or emit a metric recently - useful
+for catching an endpoint that's silently stopped responding.
+
+**Steps:**
+1. Create one more data view (same place as Step 6): title/index pattern
+   `k8s-heartbeat-*`, time field `@timestamp`.
+2. **☰ menu > Analytics > Discover**, pick the `k8s-heartbeat-*` data view.
+3. Useful fields: `monitor.id` (e.g. `sample-http`, `kibana-http`,
+   `elasticsearch-tcp` - see `k8s/60-heartbeat.yaml`), `monitor.status`
+   (`up`/`down`), `http.response.status_code`, `tcp.rtt.connect.us` /
+   `http.rtt.total.us` (latency), `error.message` (populated only on a
+   failed check).
+4. KQL `monitor.status: "down"` surfaces only failed checks - with nothing
+   down, this should return no hits.
+5. Build a dashboard panel (same **Analytics > Dashboard** flow as Step 7)
+   with a terms aggregation on `monitor.id` split by `monitor.status` for an
+   at-a-glance up/down board, or a date-histogram of `monitor.status: "down"`
+   hits to see outages over time.
+
+**Try it:** scale the sample app to zero (`kubectl scale deployment sample
+-n sample --replicas=0`) and watch `sample-http`'s `monitor.status` flip to
+`down` in Discover within ~10-20s (the monitor's `schedule` plus Heartbeat's
+own shipping latency) - then scale it back up (`--replicas=1`) and watch it
+recover.
+
+### Step 9 - Test the pipeline / monitor live logs
 
 **Purpose:** prove to yourself the whole chain actually works end-to-end -
 request hits the app -> app logs it -> Filebeat tails it -> Logstash
@@ -231,7 +267,7 @@ A date-histogram visualization with **Count** as the metric, filtered to
 `kubernetes.namespace: "sample"`, gives hits-over-time; a terms aggregation on
 `http.response.status_code` gives a breakdown by status code.
 
-### Step 9 - Pick up config changes
+### Step 10 - Pick up config changes
 
 **Purpose:** if you edit the pipeline (`k8s/20-logstash.yaml`) or the
 Filebeat inputs (`k8s/40-filebeat.yaml`), Logstash/Filebeat don't hot-reload
@@ -240,9 +276,10 @@ workload, or your edits silently have no effect.
 
 **Commands:**
 ```powershell
-kubectl apply -f k8s\20-logstash.yaml   # or 40-filebeat.yaml
+kubectl apply -f k8s\20-logstash.yaml   # or 40-filebeat.yaml, 60-heartbeat.yaml
 kubectl rollout restart deployment logstash -n logging
 kubectl rollout restart daemonset filebeat -n logging
+kubectl rollout restart deployment heartbeat -n logging
 ```
 
 ## Log sources shipped by Filebeat
@@ -294,7 +331,30 @@ In Kibana, filter `event.dataset` to tell metricsets apart (e.g.
 with **Average** of `kubernetes.pod.cpu.usage.node.pct` (or the equivalent
 memory field), split by `kubernetes.pod.name`, gives a per-pod CPU/memory
 chart - the metrics equivalent of the hits-over-time chart described in
-Step 8 above.
+Step 9 above.
+
+## Uptime checks shipped by Heartbeat
+
+Deployed via `k8s/60-heartbeat.yaml`, all land in the **`k8s-heartbeat-*`**
+index (separate from logs and metrics). Unlike Filebeat/Metricbeat, Heartbeat
+doesn't observe anything passively - it actively probes three static targets
+on a `@every 10s` schedule and ships the pass/fail result of each check:
+
+- **`sample-http`** (`http` monitor) - the sample nginx app
+  (`docker/menifest.yaml`), via its in-cluster `Service` DNS name.
+- **`kibana-http`** (`http` monitor) - Kibana's own `/api/status` endpoint,
+  doubling as an end-to-end health check of the stack itself.
+- **`elasticsearch-tcp`** (`tcp` monitor) - just confirms Elasticsearch's
+  port accepts a connection, no HTTP semantics needed.
+
+See [`k8s/60-heartbeat.md`](k8s/60-heartbeat.md) for why this runs as a
+single-replica `Deployment` (same reasoning as Metricbeat's `event`
+metricset) rather than a `DaemonSet`, and how its `ConfigMap` is structured.
+
+In Kibana, `monitor.status: "down"` filters to only failed checks,
+`monitor.id` tells the three monitors apart, and `http.rtt.total.us` /
+`tcp.rtt.connect.us` give per-check latency. See Step 8 above for a
+walkthrough, including how to simulate an outage.
 
 ## Troubleshooting
 
@@ -346,7 +406,7 @@ Elasticsearch uses a 10Gi `PersistentVolumeClaim` (`es-data`, no
 
 **Commands:**
 ```powershell
-kubectl delete -f k8s\40-filebeat.yaml -f k8s\30-kibana.yaml -f k8s\20-logstash.yaml -f k8s\10-elasticsearch.yaml -f k8s\00-namespace.yaml
+kubectl delete -f k8s\60-heartbeat.yaml -f k8s\50-metricbeat.yaml -f k8s\40-filebeat.yaml -f k8s\30-kibana.yaml -f k8s\20-logstash.yaml -f k8s\10-elasticsearch.yaml -f k8s\00-namespace.yaml
 ```
 
 Deleting `00-namespace.yaml` also removes the `es-data` PVC (and its backing
@@ -373,6 +433,9 @@ detail (resources defined, purpose of every field, key decisions):
   the two ConfigMaps (kubelet-sourced node/pod/container/volume metricsets vs.
   the API-sourced event metricset), the `DaemonSet`, and the single-replica
   `Deployment`.
+- [`k8s/60-heartbeat.md`](k8s/60-heartbeat.md) - the `heartbeat-config`
+  ConfigMap (static HTTP/TCP monitors, no RBAC needed) and the
+  single-replica `Deployment`.
 
 ## Local (Docker Compose) - optional, for quick local testing
 
@@ -383,7 +446,8 @@ to AKS.
 Collects logs from every container on the Docker host (including the `web`,
 `backend`, `db` services from `../docker/docker-compose.yaml`) via Filebeat's
 Docker autodiscover, ships them through Logstash, and indexes them into
-Elasticsearch.
+Elasticsearch. Heartbeat also runs here, probing the same sample services
+(`web`, `backend`, `database`) plus Elasticsearch/Kibana themselves.
 
 **Commands:**
 ```powershell
@@ -401,11 +465,17 @@ docker compose up -d
 - Logstash beats input: `localhost:5044`
 
 In Kibana, create a data view for the `docker-logs-*` index pattern (Stack
-Management > Data Views) to start browsing logs.
+Management > Data Views) to start browsing logs, and another for
+`heartbeat-*` to browse uptime checks (see "Uptime checks shipped by
+Heartbeat" above - same fields, just without the Kubernetes-specific
+`k8s-heartbeat-*` index name).
 
 Config files:
-- [`logstash/pipeline/logstash.conf`](logstash/pipeline/logstash.conf) ([explained](logstash/pipeline/logstash.conf.md)) - beats input -> optional nginx grok parsing -> Elasticsearch output
+- [`logstash/pipeline/logstash.conf`](logstash/pipeline/logstash.conf) ([explained](logstash/pipeline/logstash.conf.md)) - beats input -> optional nginx grok parsing -> Elasticsearch output, routed to `docker-logs-*` or `heartbeat-*`
 - `filebeat/filebeat.yml` - Docker autodiscover (hints-based, all containers)
+- `heartbeat/heartbeat.yml` - HTTP/TCP monitors against the sample app
+  (via `host.docker.internal`, since it's a separate Compose project/network)
+  and this stack's own Elasticsearch/Kibana services
 
 ## Checkpoints
 
@@ -425,3 +495,8 @@ Config files:
       `node`/`pod`/`container` metricsets run as a `DaemonSet`?
 - [ ] What's the difference between what Filebeat ships and what Metricbeat
       ships - could you answer "is the app slow?" with just one of them?
+- [ ] Why does Heartbeat run as a `Deployment` rather than a `DaemonSet`,
+      and why doesn't it need the RBAC objects Filebeat/Metricbeat do?
+- [ ] What's the difference between what Heartbeat ships and what Filebeat/
+      Metricbeat ship - could Heartbeat alone tell you *why* an endpoint is
+      down?

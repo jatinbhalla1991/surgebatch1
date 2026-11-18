@@ -40,17 +40,21 @@ the condition:
   Kibana's time-based filtering/sorting reflects when the request actually
   happened, not when Logstash processed it.
 
-**`output` block**: routes documents to one of three indices, checked in
+**`output` block**: routes documents to one of four indices, checked in
 order:
 1. `[@metadata][beat] == "metricbeat"` - metrics from `50-metricbeat.yaml`
    (node/pod/container/event metrics, not logs) -> `k8s-metrics-%{+YYYY.MM.dd}`.
    `[@metadata][beat]` is set automatically by the Logstash `beats` input
-   itself based on which Beat shipped the event (Filebeat vs. Metricbeat) -
-   no custom field needs to be added on the shipping side for this check.
-2. `[log_type] == "node-system"` (the custom field Filebeat's journald inputs
+   itself based on which Beat shipped the event (Filebeat vs. Metricbeat vs.
+   Heartbeat) - no custom field needs to be added on the shipping side for
+   this check.
+2. `[@metadata][beat] == "heartbeat"` - uptime checks from
+   `60-heartbeat.yaml` (HTTP/TCP probe results, not logs or metrics) ->
+   `k8s-heartbeat-%{+YYYY.MM.dd}`. See [`60-heartbeat.md`](60-heartbeat.md).
+3. `[log_type] == "node-system"` (the custom field Filebeat's journald inputs
    stamp - see `40-filebeat.yaml`) - node kubelet/containerd logs ->
    `k8s-system-logs-%{+YYYY.MM.dd}`.
-3. everything else (container logs, any namespace) -> `k8s-logs-%{+YYYY.MM.dd}`.
+4. everything else (container logs, any namespace) -> `k8s-logs-%{+YYYY.MM.dd}`.
 
 The `%{+YYYY.MM.dd}` suffix creates one index per day, which is the standard
 ELK pattern for easy retention management (e.g. deleting old daily indices).

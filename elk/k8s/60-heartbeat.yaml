@@ -1,0 +1,72 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: heartbeat-config
+  namespace: logging
+data:
+  heartbeat.yml: |
+    # Synthetic uptime checks are cluster-wide, not node-local (there's no
+    # "per-node" variant of "is this HTTP endpoint up"), so - like
+    # Metricbeat's event metricset (50-metricbeat.yaml) - this runs as a
+    # single-replica Deployment rather than a DaemonSet.
+    heartbeat.monitors:
+      - type: http
+        id: sample-http
+        name: sample app (docker/menifest.yaml)
+        urls: ["http://sample.sample.svc.cluster.local"]
+        schedule: '@every 10s'
+
+      - type: http
+        id: kibana-http
+        name: kibana
+        urls: ["http://kibana.logging.svc.cluster.local:5601/api/status"]
+        schedule: '@every 10s'
+
+      - type: tcp
+        id: elasticsearch-tcp
+        name: elasticsearch
+        hosts: ["elasticsearch.logging.svc.cluster.local:9200"]
+        schedule: '@every 10s'
+
+    output.logstash:
+      hosts: ["logstash.logging.svc.cluster.local:5044"]
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: heartbeat
+  namespace: logging
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: heartbeat
+  template:
+    metadata:
+      labels:
+        app: heartbeat
+    spec:
+      containers:
+      - name: heartbeat
+        image: docker.elastic.co/beats/heartbeat:8.15.0
+        args: ["-c", "/etc/heartbeat.yml", "--strict.perms=false"]
+        resources:
+          # Same small footprint as Metricbeat's event Deployment
+          # (50-metricbeat.yaml) - a single lightweight replica issuing a
+          # handful of HTTP/TCP probes every 10s.
+          requests:
+            memory: "100Mi"
+            cpu: "100m"
+          limits:
+            memory: "200Mi"
+            cpu: "200m"
+        volumeMounts:
+        - name: config
+          mountPath: /etc/heartbeat.yml
+          subPath: heartbeat.yml
+          readOnly: true
+      volumes:
+      - name: config
+        configMap:
+          name: heartbeat-config

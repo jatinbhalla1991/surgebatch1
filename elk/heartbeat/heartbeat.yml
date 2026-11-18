@@ -1,0 +1,41 @@
+heartbeat.monitors:
+  # HTTP monitor against the sample "web" app (nginx) from
+  # ../../docker/docker-compose.yaml. It's on a separate Compose project's
+  # network, so it's reached via its published host port through
+  # host.docker.internal rather than the "web" service DNS name.
+  - type: http
+    id: web-http
+    name: web (nginx)
+    urls: ["http://host.docker.internal:80"]
+    schedule: '@every 10s'
+
+  # TCP monitors - no HTTP endpoint to probe, just "is the port accepting
+  # connections". Same host.docker.internal reasoning as web-http above.
+  - type: tcp
+    id: backend-tcp
+    name: backend (redis)
+    hosts: ["host.docker.internal:6379"]
+    schedule: '@every 10s'
+
+  - type: tcp
+    id: database-tcp
+    name: database (postgres)
+    hosts: ["host.docker.internal:5432"]
+    schedule: '@every 10s'
+
+  # HTTP monitors against this stack's own services - these share Heartbeat's
+  # Compose network, so the Compose service name resolves directly.
+  - type: http
+    id: elasticsearch-http
+    name: elasticsearch
+    urls: ["http://elasticsearch:9200"]
+    schedule: '@every 10s'
+
+  - type: http
+    id: kibana-http
+    name: kibana
+    urls: ["http://kibana:5601/api/status"]
+    schedule: '@every 10s'
+
+output.logstash:
+  hosts: ["logstash:5044"]

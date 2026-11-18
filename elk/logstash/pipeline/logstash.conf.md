@@ -24,7 +24,7 @@ volumes:
 | Delivery | Bind-mounted file on the Docker host | Inline text in a `ConfigMap`, mounted as a volume |
 | Log source metadata | Filebeat's **Docker** autodiscover (`add_docker_metadata`) | Filebeat's **Kubernetes** autodiscover (`add_kubernetes_metadata`) |
 | Filter condition field | `[container][name]` | `[kubernetes][namespace]` / `[kubernetes][container][name]` |
-| Output index | Single `docker-logs-*` | Split `k8s-logs-*` / `k8s-system-logs-*` by `log_type` |
+| Output index | `docker-logs-*` / `heartbeat-*` by `[@metadata][beat]` | Split `k8s-logs-*` / `k8s-system-logs-*` / `k8s-metrics-*` / `k8s-heartbeat-*` |
 
 The filter condition here is `if [container][name] =~ "web"` - it matches
 using a regex (`=~`) against the Docker container's *name*, because the local
@@ -38,8 +38,11 @@ which is the Docker-autodiscover equivalent of
 
 There's no `log_type`-based output split here because there's no "node
 system logs vs. container logs" distinction to make on a single Docker host
-the way there is across multiple Kubernetes nodes - every container's logs
-go to the one `docker-logs-%{+YYYY.MM.dd}` index.
+the way there is across multiple Kubernetes nodes - every non-Heartbeat
+event goes to the one `docker-logs-%{+YYYY.MM.dd}` index. The one split that
+does exist here, same as on the Kubernetes side, is Heartbeat's uptime-check
+documents (`heartbeat/heartbeat.yml`) going to their own `heartbeat-*` index
+via the `[@metadata][beat]` check - see the last `output` block below.
 
 ## Block-by-block
 
@@ -70,13 +73,24 @@ Redis container, the `db` Postgres container) passes through as a raw
 
 ```
 output {
-  elasticsearch {
-    hosts => ["http://elasticsearch:9200"]
-    index => "docker-logs-%{+YYYY.MM.dd}"
+  if [@metadata][beat] == "heartbeat" {
+    elasticsearch {
+      hosts => ["http://elasticsearch:9200"]
+      index => "heartbeat-%{+YYYY.MM.dd}"
+    }
+  } else {
+    elasticsearch {
+      hosts => ["http://elasticsearch:9200"]
+      index => "docker-logs-%{+YYYY.MM.dd}"
+    }
   }
 }
 ```
-Writes every event to a single, date-rolled index,
+`[@metadata][beat]` is set automatically by the Logstash `beats` input based
+on which Beat shipped the event (Filebeat vs. Heartbeat) - no custom field
+needs to be added on the shipping side for this check. Heartbeat's uptime
+checks (`heartbeat/heartbeat.yml`) land in their own date-rolled
+`heartbeat-YYYY.MM.DD` index; everything else (container logs) goes to
 `docker-logs-YYYY.MM.DD`. In Kibana, create a data view for `docker-logs-*`
-(see the main [README](../../README.md)'s "Local (Docker Compose)" section)
-to browse these.
+and one for `heartbeat-*` (see the main [README](../../README.md)'s "Local
+(Docker Compose)" section) to browse these.
