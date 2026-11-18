@@ -566,3 +566,130 @@ Assume you are working on a project where the application needs to be deployed i
 - Explain the complete deployment process briefly.
 
 **Important:** All tasks should be performed practically. Do not submit only theoretical explanations or screenshots of the Azure Portal.
+
+----------------------- 18th november ---------------
+
+# ELK Stack – Practical Assignments
+
+## Assignment 1: Centralized Application Logging on AKS
+
+**Scenario:**  
+You are managing an application deployed on AKS that consists of a frontend, backend, and database. You need to implement centralized logging to monitor all application components.
+
+**Tasks:**
+1. Deploy a sample application with at least two microservices on AKS.
+2. Configure Filebeat or Elastic Agent to collect application logs.
+3. Send the logs to Elasticsearch.
+4. Configure Kibana data views to visualize logs.
+5. Create a dashboard showing application errors, warnings, and successful requests.
+
+**Expected Deliverables:**
+- Deployment YAML files.
+- Log collection configuration.
+- Kibana dashboard screenshots.
+- Explanation of the log flow.
+
+## Assignment 2: Application Error Detection and Troubleshooting
+
+**Scenario:**  
+Your production application is experiencing intermittent failures. The development team needs to identify the root cause using ELK.
+
+**Tasks:**
+1. Generate application logs containing successful requests, HTTP 500 errors, database timeouts, and failed authentication attempts.
+2. Use Logstash filters or Elasticsearch ingest pipelines to parse and structure the logs.
+3. Create Kibana visualizations to identify error patterns.
+4. Identify the service generating the maximum number of errors.
+5. Investigate the possible root cause using timestamps and request IDs.
+
+**Expected Deliverables:**
+- Logstash or ingest pipeline configuration.
+- Structured log samples.
+- Kibana error dashboard.
+- Root cause analysis.
+
+## Assignment 3: Kubernetes Monitoring and Alerting
+
+**Scenario:**  
+Your AKS cluster is running multiple applications. You need to monitor resource utilization and receive alerts when services experience problems.
+
+**Tasks:**
+1. Configure Metricbeat or Elastic Agent to collect Kubernetes node and pod metrics.
+2. Monitor CPU, memory, pod restarts, and node health.
+3. Create Kibana dashboards for cluster monitoring.
+4. Configure alerts for:
+   - CPU utilization above 85%.
+   - Memory utilization above 90%.
+   - Frequent pod restarts.
+   - Application error rate above a defined threshold.
+5. Simulate a failure and verify whether the alert is triggered.
+
+**Expected Deliverables:**
+- Metric collection configuration.
+- Kubernetes monitoring dashboard.
+- Alert configuration.
+- Screenshots of the simulated incident and alert.
+
+## Assignment 4: Elasticsearch High Availability and Log Retention
+
+**Scenario:**  
+Your organization uses Elasticsearch to store production logs. You need to ensure availability and optimize storage costs.
+
+**Tasks:**
+1. Configure Elasticsearch with multiple nodes and appropriate shard and replica settings.
+2. Verify cluster health and shard allocation.
+3. Simulate an Elasticsearch pod failure and observe recovery.
+4. Configure Index Lifecycle Management (ILM) for log retention.
+5. Implement rollover and automatic deletion of old logs.
+6. Investigate what happens when a node or persistent volume becomes unavailable.
+
+**Expected Deliverables:**
+- Elasticsearch configuration.
+- Cluster health and shard status.
+- ILM policy configuration.
+- Failure simulation results.
+- Storage optimization explanation.
+
+## Assignment 5: End-to-End Production Logging and Security Monitoring
+
+**Scenario:**  
+You are responsible for implementing centralized logging and security monitoring for a production application running on AKS.
+
+**Tasks:**
+1. Collect logs from application containers and relevant Kubernetes components.
+2. Collect authorized Linux authentication and security logs.
+3. Configure Logstash to parse, filter, and enrich log data.
+4. Create Kibana dashboards for application health and security events.
+5. Detect repeated failed login attempts and suspicious access patterns.
+6. Configure alerts for critical application errors and security events.
+7. Document the complete architecture and data flow.
+
+**Expected Deliverables:**
+- End-to-end ELK architecture diagram.
+- Filebeat/Elastic Agent and Logstash configurations.
+- Kibana dashboards.
+- Security alerts.
+- Implementation and troubleshooting documentation.
+
+---
+
+## Submission Guidelines
+
+For each assignment, submit:
+
+1. Architecture diagram.
+2. Configuration files and YAML manifests.
+3. Screenshots of successful implementation.
+4. Testing and troubleshooting steps.
+5. Explanation of the solution and observations.
+
+**Evaluation Criteria (100 Marks)**
+
+| Criteria | Marks |
+|---|---:|
+| Architecture and implementation | 20 |
+| Log collection and processing | 20 |
+| Elasticsearch configuration | 15 |
+| Kibana dashboards and visualizations | 15 |
+| Monitoring and alerting | 15 |
+| Troubleshooting and documentation | 15 |
+| **Total** | **100** |
